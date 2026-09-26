@@ -16,7 +16,21 @@ const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 
 var TEST_REQUEST = jev.Request{
 	State: `@everyone Hey guys! I'm offering out my CANON EOS 1500D, a 18-55mm, a 17-85mm, a 50mm f/1.8, and a Kogan Horizon camera for free. They're in original box, nearly brand new condition. I bought them Christmas 2025, used only for test shoots. I'm offering it out because I just got a drone and want someone who needs it to have it. If you're interested, Text me on +[PHONE]`,
-	Model: "jev-latest",
+	Model: "typesafe/jev-1.13",
+	Questions: map[string]jev.Question{
+		"is_scam": jev.NoulQuestion{
+			Instructions: "Is this message likely a scam?",
+		},
+		"scam_level": jev.ScoreQuestion{
+			Instructions: "Rate the likelihood that this message is a scam.",
+			Criteria:     []any{"Low", "Medium", "High"},
+		},
+	},
+}
+
+var TEST_REQUEST_2 = jev.Request{
+	State: `@everyone Giving away my Canon EOS R7 Mirrorless Camera (Body Only), Hybrid Camera, 32.5 Megapixel (APS-C) CMOS Sensor, 4K Video, for Sports, Action, Content Creators, Vlogging Camera, Black Comes with extra lens Dm  if interested`,
+	Model: "typesafe/jev-1.13",
 	Questions: map[string]jev.Question{
 		"is_scam": jev.NoulQuestion{
 			Instructions: "Is this message likely a scam?",
@@ -31,19 +45,21 @@ var TEST_REQUEST = jev.Request{
 func main() {
 	args := os.Args
 	if len(args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: jev [test|request]")
+		fmt.Fprintln(os.Stderr, "usage: jev [test1|test2|request]")
 		os.Exit(1)
 	}
 
 	subcommand := args[1]
-	if subcommand != "test" && subcommand != "request" {
-		fmt.Fprintln(os.Stderr, "usage: jev [test|request]")
+	if subcommand != "test1" && subcommand != "test2" && subcommand != "request" {
+		fmt.Fprintln(os.Stderr, "usage: jev [test1|test2|request]")
 		os.Exit(1)
 	}
 
 	switch subcommand {
-	case "test":
-		testJevEvaluate()
+	case "test1":
+		testJevEvaluate(TEST_REQUEST)
+	case "test2":
+		testJevEvaluate(TEST_REQUEST_2)
 	case "request":
 		getJevRequest()
 	}
@@ -61,21 +77,19 @@ func getJevRequest() {
 	fmt.Println(string(b))
 }
 
-func testJevEvaluate() {
+func testJevEvaluate(req jev.Request) {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
 		log.Fatal("Error: OPENROUTER_API_KEY environment variable is not set.")
 	}
 
-	client, err := jev.NewClient(apiKey, OPENROUTER_ENDPOINT, "typesafe/jev-1.13")
+	client, err := jev.NewClient(apiKey, OPENROUTER_ENDPOINT)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-
-	req := TEST_REQUEST
 
 	fmt.Println("Sending evaluation request to TypeSafe Jev API...")
 	resp, err := client.Evaluate(ctx, &req)
@@ -126,3 +140,4 @@ func testJevEvaluate() {
 		fmt.Println()
 	}
 }
+
