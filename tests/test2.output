@@ -1,0 +1,9 @@
+Sending evaluation request to TypeSafe Jev API...
+
+Evaluated Model: typesafe/jev-1.13-20260917
+Tokens Used: Input=457, Output=22
+
+Answers:
+  - [is_scam] Type: noul
+    Noul Probability: 0.8900
+

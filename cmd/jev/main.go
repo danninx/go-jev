@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -14,70 +14,23 @@ import (
 
 const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 
-var TEST_REQUEST = jev.Request{
-	State: `@everyone Hey guys! I'm offering out my CANON EOS 1500D, a 18-55mm, a 17-85mm, a 50mm f/1.8, and a Kogan Horizon camera for free. They're in original box, nearly brand new condition. I bought them Christmas 2025, used only for test shoots. I'm offering it out because I just got a drone and want someone who needs it to have it. If you're interested, Text me on +[PHONE]`,
-	Model: "typesafe/jev-1.13",
-	Questions: map[string]jev.Question{
-		"is_scam": jev.NoulQuestion{
-			Instructions: "Is this message likely a scam?",
+func newTestRequest(state string) *jev.Request {
+	return &jev.Request{
+		State: state,
+		Model: "typesafe/jev-1.13",
+		Questions: map[string]jev.Question{
+			"is_scam": jev.NoulQuestion{
+				Instructions: "Is this message likely a scam?",
+				Criteria: jev.NoulCriteria{
+					True:  "Gives away thousands of dollars in high-value electronics, urges users to contact off-platform via SMS/phone, or uses unsolicited channel-wide mentions (@everyone).",
+					False: "Legitimate item giveaway or local trade without off-platform redirect.",
+				},
+			},
 		},
-		"scam_level": jev.ScoreQuestion{
-			Instructions: "Rate the likelihood that this message is a scam.",
-			Criteria:     []any{"Low", "Medium", "High"},
-		},
-	},
-}
-
-var TEST_REQUEST_2 = jev.Request{
-	State: `@everyone Giving away my Canon EOS R7 Mirrorless Camera (Body Only), Hybrid Camera, 32.5 Megapixel (APS-C) CMOS Sensor, 4K Video, for Sports, Action, Content Creators, Vlogging Camera, Black Comes with extra lens Dm  if interested`,
-	Model: "typesafe/jev-1.13",
-	Questions: map[string]jev.Question{
-		"is_scam": jev.NoulQuestion{
-			Instructions: "Is this message likely a scam?",
-		},
-		"scam_level": jev.ScoreQuestion{
-			Instructions: "Rate the likelihood that this message is a scam.",
-			Criteria:     []any{"Low", "Medium", "High"},
-		},
-	},
+	}
 }
 
 func main() {
-	args := os.Args
-	if len(args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: jev [test1|test2|request]")
-		os.Exit(1)
-	}
-
-	subcommand := args[1]
-	if subcommand != "test1" && subcommand != "test2" && subcommand != "request" {
-		fmt.Fprintln(os.Stderr, "usage: jev [test1|test2|request]")
-		os.Exit(1)
-	}
-
-	switch subcommand {
-	case "test1":
-		testJevEvaluate(TEST_REQUEST)
-	case "test2":
-		testJevEvaluate(TEST_REQUEST_2)
-	case "request":
-		getJevRequest()
-	}
-}
-
-func getJevRequest() {
-	b, err := json.MarshalIndent(TEST_REQUEST, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stdout, "error marshaling test request", err)
-		os.Exit(1)
-	}
-
-	fmt.Println("test request:")
-
-	fmt.Println(string(b))
-}
-
-func testJevEvaluate(req jev.Request) {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
 		log.Fatal("Error: OPENROUTER_API_KEY environment variable is not set.")
@@ -88,11 +41,27 @@ func testJevEvaluate(req jev.Request) {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
+	filePath := flag.String("file", "", "Path to file with test message")
+	flag.Parse()
+
+	if filePath == nil || *filePath == "" {
+		fmt.Println("No file provided.")
+		os.Exit(0)
+	}
+
+	content, err := os.ReadFile(*filePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error reading file:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Sending evaluation request to TypeSafe Jev API...")
+	req := newTestRequest(string(content))
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	fmt.Println("Sending evaluation request to TypeSafe Jev API...")
-	resp, err := client.Evaluate(ctx, &req)
+	resp, err := client.Evaluate(ctx, req)
 	if err != nil {
 		var apiErr *jev.APIError
 		if errors.As(err, &apiErr) {
@@ -107,7 +76,7 @@ func testJevEvaluate(req jev.Request) {
 		log.Fatalf("Unexpected client error: %v", err)
 	}
 
-	fmt.Printf("\nSuccess! Evaluated Model: %s\n", resp.Model)
+	fmt.Printf("\nEvaluated Model: %s\n", resp.Model)
 	fmt.Printf("Tokens Used: Input=%d, Output=%d\n\n", resp.Usage.InputTokens, resp.Usage.OutputTokens)
 
 	fmt.Println("Answers:")
@@ -140,4 +109,3 @@ func testJevEvaluate(req jev.Request) {
 		fmt.Println()
 	}
 }
-
