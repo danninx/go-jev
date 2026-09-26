@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,7 +14,54 @@ import (
 
 const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 
+var TEST_REQUEST = jev.Request{
+	State: `@everyone Hey guys! I'm offering out my CANON EOS 1500D, a 18-55mm, a 17-85mm, a 50mm f/1.8, and a Kogan Horizon camera for free. They're in original box, nearly brand new condition. I bought them Christmas 2025, used only for test shoots. I'm offering it out because I just got a drone and want someone who needs it to have it. If you're interested, Text me on +[PHONE]`,
+	Model: "jev-latest",
+	Questions: map[string]jev.Question{
+		"is_scam": jev.NoulQuestion{
+			Instructions: "Is this message likely a scam?",
+		},
+		"scam_level": jev.ScoreQuestion{
+			Instructions: "Rate the likelihood that this message is a scam.",
+			Criteria:     []any{"Low", "Medium", "High"},
+		},
+	},
+}
+
 func main() {
+	args := os.Args
+	if len(args) != 2 {
+		fmt.Fprintln(os.Stderr, "usage: jev [test|request]")
+		os.Exit(1)
+	}
+
+	subcommand := args[1]
+	if subcommand != "test" && subcommand != "request" {
+		fmt.Fprintln(os.Stderr, "usage: jev [test|request]")
+		os.Exit(1)
+	}
+
+	switch subcommand {
+	case "test":
+		testJevEvaluate()
+	case "request":
+		getJevRequest()
+	}
+}
+
+func getJevRequest() {
+	b, err := json.MarshalIndent(TEST_REQUEST, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stdout, "error marshaling test request", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("test request:")
+
+	fmt.Println(string(b))
+}
+
+func testJevEvaluate() {
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
 		log.Fatal("Error: OPENROUTER_API_KEY environment variable is not set.")
@@ -24,28 +72,13 @@ func main() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	req := &jev.Request{
-		State: `
-            @everyone Hey guys! I'm offering out my CANON EOS 1500D, a 18-55mm, a 17-85mm, a 50mm f/1.8, and a Kogan Horizon camera for free. They're in original box, nearly brand new condition. I bought them Christmas 2025, used only for test shoots. I'm offering it out because I just got a drone and want someone who needs it to have it.
-            If you're interested, Text me on +[PHONE]
-        `,
-		Model: "jev-latest",
-		Questions: map[string]jev.Question{
-			"is_scam": jev.NoulQuestion{
-				Instructions: "Is this message likely a scam?",
-			},
-			"scam_level": jev.ScoreQuestion{
-				Instructions: "Rate the likelihood that this message is a scam.",
-				Criteria:     []any{"Low", "Medium", "High"},
-			},
-		},
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	req := TEST_REQUEST
+
 	fmt.Println("Sending evaluation request to TypeSafe Jev API...")
-	resp, err := client.Evaluate(ctx, req)
+	resp, err := client.Evaluate(ctx, &req)
 	if err != nil {
 		var apiErr *jev.APIError
 		if errors.As(err, &apiErr) {
