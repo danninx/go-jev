@@ -19,7 +19,7 @@ func main() {
 		log.Fatal("Error: OPENROUTER_API_KEY environment variable is not set.")
 	}
 
-	client, err := jev.NewClient(apiKey, OPENROUTER_ENDPOINT)
+	client, err := jev.NewClient(apiKey, OPENROUTER_ENDPOINT, "typesafe/jev-1.13")
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}

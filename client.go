@@ -12,26 +12,21 @@ import (
 
 // --- Jev Client ---
 type Jev struct {
-	APIKey string
+	APIKey   string
 	Endpoint string
-	Client *http.Client
+	Model    string
+	Client   *http.Client
 }
 
-const TYPESAFE_DEFAULT_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
-
-func NewDefaultClient(apiKey string) (*Jev, error) {
-	return NewClient(apiKey, TYPESAFE_DEFAULT_ENDPOINT)
-}
-
-func NewClient(apiKey string, endpoint string) (*Jev, error) {
+func NewClient(apiKey string, endpoint string, model string) (*Jev, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	j := &Jev{
-		APIKey: apiKey,
+		APIKey:   apiKey,
 		Endpoint: endpoint,
-		Client: client,
+		Client:   client,
 	}
 
 	return j, nil
