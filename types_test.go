@@ -52,10 +52,7 @@ func TestNoulQuestion_MarshalJSON(t *testing.T) {
 	expect = `{"type":"noul","instructions":"Is this urgent?","criteria":{"true":"Explicit urgency","false":"No urgency"}}`
 	q = jev.NoulQuestion{
 		Instructions: "Is this urgent?",
-		Criteria: &struct {
-			True  string `json:"true,omitempty"`
-			False string `json:"false,omitempty"`
-		}{
+		Criteria: jev.NoulCriteria{
 			True:  "Explicit urgency",
 			False: "No urgency",
 		},
