@@ -14,11 +14,10 @@ import (
 type Jev struct {
 	APIKey   string
 	Endpoint string
-	Model    string
 	Client   *http.Client
 }
 
-func NewClient(apiKey string, endpoint string, model string) (*Jev, error) {
+func NewClient(apiKey string, endpoint string) (*Jev, error) {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}

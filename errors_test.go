@@ -69,7 +69,7 @@ func TestClient_HTTPErrorResponses(t *testing.T) {
 	)
 	defer server.Close()
 
-	client, err := jev.NewClient("test-key", server.URL, "typesafe/jev-1.13")
+	client, err := jev.NewClient("test-key", server.URL)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestClient_HTTPErrorResponses(t *testing.T) {
 
 func TestClient_NonApplicationErrors(t *testing.T) {
 	// Point client to an invalid unreachable address
-	client, err := jev.NewClient("test-key", "http://127.0.0.1:1", "typesafe/jev-1.13")
+	client, err := jev.NewClient("test-key", "http://127.0.0.1:1")
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
